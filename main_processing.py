@@ -29,6 +29,7 @@ TEXT_COLOR = (255, 0, 0)  # red
 #                                        score_threshold=0.5
 #                                        )
 # detector = vision.ObjectDetector.create_from_options(options)
+# Vmos con mas comentarios
 cap2 = cv2.VideoCapture('C:/Users/facum/PycharmProjects/armas/M4A1S_Kill_Asistencia_Pacificador.mkv')
 x = 1400
 y = 50
