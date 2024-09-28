@@ -1,7 +1,3 @@
-import mediapipe as mp
-import csv
-from mediapipe.tasks import python
-from mediapipe.tasks.python import vision
 import cv2
 import pytesseract
 import easyocr
@@ -14,44 +10,55 @@ FONT_THICKNESS = 1
 rect_color = (255, 0, 255)
 TEXT_COLOR = (255, 0, 0)  # red
 
-# cap2 = ImrpoveQuality.return_video_updated('C:/Users/facum/PycharmProjects/project_ia/tflite-mediapipe-main'
-#                                            '/freedomtech/video2.mp4',
-#                                            'C:/Users/facum/PycharmProjects/project_ia/tflite-mediapipe-main'
-#                                            '/freedomtech'
-#                                            '/Video_output.mp4')
-
-
-# base_options = python.BaseOptions(model_asset_path='best.tflite')
-# options = vision.ObjectDetectorOptions(base_options=base_options,
-#                                        # score_threshold=0.5,
-#                                        # max_results=5,
-#                                        # running_mode=vision.RunningMode.VIDEO
-#                                        score_threshold=0.5
-#                                        )
-# detector = vision.ObjectDetector.create_from_options(options)
-# Vmos con mas comentarios
-cap2 = cv2.VideoCapture('C:/Users/facum/PycharmProjects/armas/M4A1S_Kill_Asistencia_Pacificador.mkv')
+cap2 = cv2.VideoCapture('C:/Users/facum/PycharmProjects/armas/XM1014_Death_Simple_Pacificador.mkv')
+# Recorte panel superior derecho
 x = 1400
 y = 50
 ancho = 600
 alto = 70
+# recorte panel inferior izquierdo
+x1 = 0
+y1 = 880
+ancho1 = 500
+alto1 = 150
 
 fps = cap2.get(cv2.CAP_PROP_FPS)
 intervalo = int(0.3 * fps)
 contador = 0
+
+# Tiempo para capturar panel inf izquierdo
+intervalo2 = int(2 * fps)
+contador2 = 0
 
 while True:
     ret, frame = cap2.read()
 
     if not ret:
         break
+    if contador2 % intervalo2 == 0:
+        recorte_inf = frame[y1:y1 + alto1, x1:x1 + ancho1]
+        ultima_img = recorte_inf
+        dst = cv2.detailEnhance(recorte_inf, sigma_s=12, sigma_r=3)
+        if contador2 > 0:
+            hist1 = cv2.calcHist([ultima_img], [0], None, [256], [0, 256])
+            hist2 = cv2.calcHist([dst], [0], None, [256], [0, 256])
+            simulitud = cv2.compareHist(hist1, hist2, cv2.HISTCMP_BHATTACHARYYA)
+            porcentaje_diferencia = (1 - simulitud) * 100
+            if porcentaje_diferencia < 30:
+                print(f'Guardo print de imagen panel inferior')
+                ultima_img = dst
+                cv2.imwrite(f'C:/Users/facum/PycharmProjects/tesis_convo/images/panel_inf_{contador}.jpg', dst)
+        else:
+            ultima_img = dst
+            cv2.imwrite(f'C:/Users/facum/PycharmProjects/tesis_convo/images/panel_inf_{contador}.jpg', dst)
+    contador2 += 1
     if contador % intervalo == 0:
         recorte = frame[y:y + alto, x:x + ancho]
-        ultima_img=recorte
         img_gris = cv2.cvtColor(recorte, cv2.COLOR_BGR2GRAY)
+        ultima_img = img_gris
         # dst = cv2.detailEnhance(img_gris, sigma_s=10, sigma_r=1)
         # color2 = cv2.resize(dst, (640, 128))
-        _, thr = cv2.threshold(img_gris, 80, 255, cv2.THRESH_BINARY)
+        # _, thr = cv2.threshold(img_gris, 80, 255, cv2.THRESH_BINARY)
         img_gauss = cv2.GaussianBlur(img_gris, (5, 5), 0)
         img_unsharp = cv2.addWeighted(img_gris, 2.0, img_gauss, -1.2, 2)
         color2 = cv2.resize(img_unsharp, (640, 128))
@@ -59,21 +66,20 @@ while True:
             hist1 = cv2.calcHist([ultima_img], [0], None, [256], [0, 256])
             hist2 = cv2.calcHist([color2], [0], None, [256], [0, 256])
             simulitud = cv2.compareHist(hist1, hist2, cv2.HISTCMP_BHATTACHARYYA)
-            porcentaje_simulitud = (1 - simulitud) * 100
-            print(f'Porcentaje simulitud: {porcentaje_simulitud}', f'Contador: {contador}')  #{porcentaje_simulitud:.2f}%
-            if porcentaje_simulitud < 30:
+            porcentaje_diferencia = (1 - simulitud) * 100
+            print(f'Porcentaje simulitud: {porcentaje_diferencia}',
+                  f'Contador: {contador}')  # {porcentaje_simulitud:.2f}%
+            if porcentaje_diferencia < 35:
                 print(f'Guardo print de imagen')
-                cv2.imwrite(f'C:/Users/facum/PycharmProjects/tesis_convo/images/frame_{contador}.jpg', color2)
+                cv2.imwrite(f'C:/Users/facum/PycharmProjects/tesis_convo/images/panel_sup_{contador}.jpg', color2)
                 ultima_img = color2
         else:
-            cv2.imwrite(f'C:/Users/facum/PycharmProjects/tesis_convo/images/frame_{contador}.jpg', color2)
-            ultima_img=color2
-
+            cv2.imwrite(f'C:/Users/facum/PycharmProjects/tesis_convo/images/panel_sup_{contador}.jpg', color2)
+            ultima_img = color2
     contador += 1
-    cv2.imshow("test window", frame)
+    cv2.imshow("Juego CS 2", frame)
     if cv2.waitKey(1) & 0xFF == 27:
         break
 cap2.release()
 cv2.destroyAllWindows()
 detecting_text.process_text('C:/Users/facum/PycharmProjects/tesis_convo/images')
-# adjust_csv.eliminar_duplicados_y_ajustar_csv('out.csv')

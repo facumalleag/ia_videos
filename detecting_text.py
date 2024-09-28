@@ -4,8 +4,11 @@ import os
 import csv
 
 notif = [
-    ["Tirador", "Neutralizado"]
+    ["Headshot", "Neutralizado", "Asistencia", "Arma"]
 ]
+msg = ''
+# tagname='gabriel.a.rojas'
+tagname = 'TJ Fri'
 with open('out.csv', 'w', newline='') as csvfile:
     writer = csv.writer(csvfile)
     writer.writerows(notif)
@@ -18,11 +21,11 @@ with open('out.csv', 'w', newline='') as csvfile:
 def process_text(path):
     lector = easyocr.Reader(['en', 'es'], gpu=False)
     images = [f for f in os.listdir(path) if f.endswith(('.jpg', '.png', '.bmp'))]
-
     for image in images:
         image_path = os.path.join(path, image)
+        name = os.path.basename(image_path).title().lower()
         imagen = cv2.imread(image_path)
-        text = lector.readtext(imagen, contrast_ths=0.4,
+        text = lector.readtext(imagen, contrast_ths=0.4, batch_size=2,
                                adjust_contrast=0.5, text_threshold=0.5)
         with open('out.csv', 'r+', newline='') as csvfile:
             reader = csv.reader(csvfile)
@@ -32,16 +35,32 @@ def process_text(path):
                 ultima_fila = fila_leida
             aux0 = ''.join(map(str, ultima_fila[0]))
             aux1 = ''.join(map(str, ultima_fila[1]))
-            print(aux0)
-            print(aux1)
-            if text.__len__() != 0 and (aux1 != text[1][1] or aux0 != text[0][1]):
+            # print(aux0)
+            # print(aux1)
+            # print(name)
+
+            if name.startswith('panel_sup_') and text.__len__() != 0 and (aux1 != text[1][1] or aux0 != text[0][1]) \
+                    and (tagname in text[0][1] or tagname in text[1][1]):
                 # texto = pytesseract.image_to_string(frame)
                 writer.writerow([text[0][1], text[1][1]])
                 print("Agregue: ", text[0][1])
                 print("Agregue: ", text[1][1])
                 # print("TEXTO: " + texto)
                 csvfile.flush()
-
+            else:
+                for (bbox, text, prob) in text:
+                    print(text)
+                    if 'ayudar' in text:
+                        writer.writerow(['', '', text])
+                        print("Agregue Asistencia: ", text)
+                        csvfile.flush()
+                    else:
+                        if 'enem' in text:
+                            aux = text.split()
+                            arma = aux[-1]
+                            writer.writerow(['', '', '', arma])
+                            print("Agregue kill: ", arma)
+                            csvfile.flush()
     return 0
 
 # INPUT_FOLDER = "app/temp/images/images_amazon"

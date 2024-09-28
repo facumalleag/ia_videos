@@ -4,35 +4,54 @@ import easyocr
 import numpy as np
 import os
 
-pytesseract.pytesseract.tesseract_cmd = r'C:/Program Files/Tesseract-OCR/tesseract.exe'
-cap = cv2.VideoCapture('C:/Users/facum/PycharmProjects/armas/MP5SD_Death_Headshot_Pacificador.mkv')
+x = 0
+y = 880
+ancho = 500
+alto = 150
+lector = easyocr.Reader(['en', 'es'], gpu=False)
+while True:
+    max_prob = 0
+    texto = ''
+    for i in range(3):
+        cap2 = cv2.VideoCapture('C:/Users/facum/PycharmProjects/armas/MP5SD_Kill_Headshot_Pacificador.mkv')
+        ret, frame = cap2.read()
+        recorte = frame[y:y + alto, x:x + ancho]
+        dst = cv2.detailEnhance(recorte, sigma_s=12, sigma_r=3)
+        # dst2 = cv2.resize(dst, (820, 320))
 
-reader = easyocr.Reader(['en', 'es'])
-ret, frame = cap.read()
+        text = lector.readtext(dst, contrast_ths=0.4,
+                               adjust_contrast=0.5, text_threshold=0.5)
+        cap2.release()
+        cv2.destroyAllWindows()
+        for (bbox, text, prob) in text:
+            aux_prob = abs(prob * 100)
+            print(f'Texto: {text}, Probability: {aux_prob}')
+            if aux_prob > max_prob:
+                max_prob = aux_prob
+                texto = text
+        cv2.imshow("Imagen Gris", dst)
+    print(f'Texto: {texto}, Probability: {max_prob}')
 
-x = 1400
-y = 50
-ancho = 600
-alto = 70
+    if cv2.waitKey(0) & 0xFF == 27:
+        break
 
-recorte = frame[y:y + alto, x:x + ancho]
-img_gris = cv2.cvtColor(recorte, cv2.COLOR_BGR2GRAY)
-dst = cv2.detailEnhance(recorte, sigma_s=10, sigma_r=1)
-color2 = cv2.resize(dst, (640, 128))
-
-img_gauss = cv2.GaussianBlur(img_gris, (5, 5), 0)
-img_unsharp = cv2.addWeighted(img_gris, 2.0, img_gauss, -1.2, 2)
-frame2 = cv2.resize(img_unsharp, (640, 128))
-dst2 = cv2.resize(img_unsharp, (640, 128))
+# img_gris = cv2.cvtColor(recorte, cv2.COLOR_BGR2GRAY)
+# dst = cv2.detailEnhance(recorte, sigma_s=10, sigma_r=1)
+# color2 = cv2.resize(dst, (640, 128))
 #
-# # Binarizar la imagen
-_, thr = cv2.threshold(img_gris, 80, 255, cv2.THRESH_BINARY_INV)
-#
-# # thr = cv2.Canny(img_gris, 10, 255) Trzar los bordes de las imagenes
-#
-#
-# # Kernel
-kernel = np.ones((3, 3), np.uint8)
+# img_gauss = cv2.GaussianBlur(img_gris, (5, 5), 0)
+# img_unsharp = cv2.addWeighted(img_gris, 2.0, img_gauss, -1.2, 2)
+# frame2 = cv2.resize(img_unsharp, (640, 128))
+# dst2 = cv2.resize(img_unsharp, (640, 128))
+# #
+# # # Binarizar la imagen
+# _, thr = cv2.threshold(img_gris, 80, 255, cv2.THRESH_BINARY_INV)
+# #
+# # # thr = cv2.Canny(img_gris, 10, 255) Trzar los bordes de las imagenes
+# #
+# #
+# # # Kernel
+# kernel = np.ones((3, 3), np.uint8)
 
 
 #
@@ -111,36 +130,37 @@ def apply_blur_detected_text(image, coords):
     return image
 
 
-while True:
-    min_font_size_ratio = 0.04
-    filtered_results = []
-
-    results = reader.readtext(color2)
-    print(results)
-    cv2.waitKey(0)
-
-    for result in results:
-        bbox = result[0]
-        text_confidence = result[2]
-        font_size = (bbox[2][1] - bbox[0][1]) / color2.shape[0]
-
-        if text_confidence > min_font_size_ratio and font_size >= min_font_size_ratio and outside_central_zone(
-                color2.shape, (bbox[0], bbox[2])):
-            filtered_results.append(result)
-
-    if filtered_results:
-        coords = [(result[0][0], result[0][2])
-                  for result in filtered_results]
-        img_blurred = apply_blur_detected_text(color2, coords)
-        base_filename, ext = os.path.splitext('_2_1_3')
-        new_filename = f"{base_filename}_blurred{ext}"
-
-        # cv2.imwrite(new_filename, img_blurred)
-
-        # os.remove(image_path)
-        if cv2.waitKey(1) & 0xFF == 27:  # Press 'ESC' to exit
-            print(f"Text found: {filtered_results} \n")
-            break
+#
+# while True:
+#     min_font_size_ratio = 0.04
+#     filtered_results = []
+#
+#     results = reader.readtext(color2)
+#     print(results)
+#     cv2.waitKey(0)
+#
+#     for result in results:
+#         bbox = result[0]
+#         text_confidence = result[2]
+#         font_size = (bbox[2][1] - bbox[0][1]) / color2.shape[0]
+#
+#         if text_confidence > min_font_size_ratio and font_size >= min_font_size_ratio and outside_central_zone(
+#                 color2.shape, (bbox[0], bbox[2])):
+#             filtered_results.append(result)
+#
+#     if filtered_results:
+#         coords = [(result[0][0], result[0][2])
+#                   for result in filtered_results]
+#         img_blurred = apply_blur_detected_text(color2, coords)
+#         base_filename, ext = os.path.splitext('_2_1_3')
+#         new_filename = f"{base_filename}_blurred{ext}"
+#
+#         # cv2.imwrite(new_filename, img_blurred)
+#
+#         # os.remove(image_path)
+#         if cv2.waitKey(1) & 0xFF == 27:  # Press 'ESC' to exit
+#             print(f"Text found: {filtered_results} \n")
+#             break
 
 #     print(f"Blurred image saved and original replaced at: {image_path}")
 #
@@ -150,5 +170,5 @@ while True:
 #     print(f"No text detected on path: {image_path}")
 #     return True, image_path
 
-cap.release()
+cap2.release()
 cv2.destroyAllWindows()
